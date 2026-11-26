@@ -1,0 +1,54 @@
+name: DSH rc.5 compatibility probe
+on:
+  push:
+    branches: ['compat/dsh-0.2.2-rc.5']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh: ['0.2.2-rc.1', '0.2.2-rc.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+      - name: Resolve candidate dependencies
+        env:
+          DSH_VERSION: ${{ matrix.dsh }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs'
+          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          for (const name of Object.keys(p.devDependencies)) {
+            if (name.startsWith('@deepseek-ai/dsh-')) p.devDependencies[name] = process.env.DSH_VERSION
+          }
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n')
+          JS
+          if [ "$DSH_VERSION" = "0.2.2-rc.1" ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+          npm ls --all > dependency-tree.txt || true
+      - name: Type check
+        run: npm run typecheck
+      - name: Build and regression tests
+        if: success() || failure()
+        run: npm test
+      - name: Inspect package
+        if: success()
+        run: npm pack --dry-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-resolution-${{ matrix.dsh }}
+          path: |
+            package.json
+            package-lock.json
+            dependency-tree.txt
