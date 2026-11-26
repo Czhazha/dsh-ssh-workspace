@@ -67,7 +67,7 @@ DSH 当前未提供项目标题装饰插槽，远程图标由独立 DOM 适配�
 
 浏览器入口使用 DSH 的 `window.__ModuleLoader__.load` 包装，React 由宿主加载。测试必须检查实际发布的经典脚本，不能只测试 TypeScript 源码或 ESM 导入。
 
-兼容范围见根目录 `package.json` 的 `dsh.engines.dsh`；已验证协议版本见 `src/types.ts` 的 `VERIFIED_DSH_VERSION`。当前为 **0.2.2-rc.1**。全量后端固定安装这个协议版本，不自动跟随 npm 的 DSH 最新版本。
+本 fork 的兼容目标见 `package.json` 的 `dsh.engines.dsh` 与 `src/types.ts` 的 `TARGET_DSH_VERSION`，当前为 **0.2.2-rc.5**。全量后端固定安装此版本，不自动跟随 npm 最新版本。`VERIFIED_DSH_VERSION` 仍记录上游 rc.1 实机基准；rc.5 的真实后端与客户端验收结果单独记录。
 
 扩大版本范围之前，先验证原生 RPC、Client Module、Sidebar Panel、二进制附件和 Remote Mux 行为，再同步 README 与使用指南。
 
@@ -79,7 +79,7 @@ DSH 当前未提供项目标题装饰插槽，远程图标由独立 DOM 适配�
 ~/.local/share/dsh-ssh-workspaces/
   bootstrap.lock
   node-v24.12.0-linux-x64/       # 系统 Node 不满足要求时安装；另支持 arm64
-  dsh-0.2.2-rc.1/
+  dsh-0.2.2-rc.5/
     node_modules/
     installed.ok
     backend.json
@@ -106,6 +106,8 @@ npx tsx scripts/smoke-backend.ts
 环境分组回归还覆盖同环境混合模式、多后端身份、筛选后的完整断开范围、连接取消、失效目录，以及单项目模式切换不重置健康共享连接。实机验证使用同一 WSL 中的两个全量目录和一个轻量入口，检查共享断开、恢复和模式往返时的状态与原生侧栏。
 
 `smoke-backend.ts` 面向已准备好的 `Ubuntu-22.04` 及专用测试目录，验证真实远端 DSH 的会话创建、工作区流、终端、文件、附件上传、事件握手，以及全量 → 轻量 → 全量、断开 / 重连与原会话保留。脚本会启动或复用远端后端，但不主动发起付费模型请求。运行前阅读脚本并确认发行版及测试路径适合当前环境。
+
+CI 可使用隔离 Docker 容器，设置 `DSH_SMOKE_DOCKER` 为容器名、`DSH_SMOKE_MOUNT` 为绑定到容器 `/workspace` 的宿主机绝对目录，执行同一脚本。该验收不替代实际客户端、SSH 或 WSL 验证。
 
 WSL 验证不能替代真实 SSH 服务器验证；密码、密钥和证书等认证方式也应分别记录验证范围。不要将测试服务器地址或凭据写入公开文档。
 

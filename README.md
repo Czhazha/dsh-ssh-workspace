@@ -113,23 +113,26 @@
 
 ## 安装
 
+> **Czhazha fork：DSH 0.2.2-rc.5 适配分支。** 此分支固定 rc.5 开发依赖及全量远端后端版本。174 项回归测试曾在 rc.5 依赖环境通过；正式锁文件和真实 Docker 后端验收见 GitHub Actions。Windows / SSH / WSL 仍需实机确认。下面 rc.1 的实机记录来自上游，不代表本分支已完成 rc.5 实机验收。
+
 插件版本 **0.4.0**，已实机验证 **DSH 0.2.2-rc.1**。Windows 桌面客户端已验证全量项目侧栏显示；独立 WSL 项目已验证远端文件、终端、附件、断开重连及全量 → 轻量 → 全量后原会话保留。Skill 同步也已通过真实 DSH / WSL 验证。Docker 已完成连接参数、认证、容器身份和界面回归，当前测试环境没有可用的 Docker daemon，尚未完成真实容器验收。0.3.2 进一步实测了环境分组、共享连接、逐项目模式往返、筛选影响范围和窄布局。0.3.3 重构管理界面与交互，远程执行、连接存储和路由逻辑未改动。0.4.0 新增插件内 SSH 主机指纹核对与信任流程，并让主机密钥错误直接指向该面板；主机密钥读取、`known_hosts` 写入、拒绝替换变更指纹的边界已有服务端回归测试，客户端面板有 UI 回归测试覆盖，尚未重新进行真实客户端验收。DSH 声明的兼容范围不等于所有版本都已测试。
 
-安装到官方桌面客户端的 `desktop` profile：
-
-```powershell
-dsh plugin --profile desktop add dsh-ssh-workspaces@0.4.0
-```
-
-使用 `dsh web` 时安装到 `web` profile：
+请使用 Node 24.9+，从本 fork 构建安装包（Windows 建议在 Windows 本机打包，以包含 askpass exe）：
 
 ```sh
-dsh plugin --profile web add dsh-ssh-workspaces@0.4.0
+git clone -b compat/dsh-0.2.2-rc.5 https://github.com/Czhazha/dsh-ssh-workspace.git
+cd dsh-ssh-workspace
+npm ci
+npm run check
+npm pack
+dsh plugin --profile web add ./dsh-ssh-workspaces-0.4.0.tgz
 ```
+
+桌面客户端使用 `--profile desktop`。建议先用独立测试 profile，勿直接覆盖现有生产 profile。
 
 **安装后重启客户端或 `dsh web` 一次。** 后续添加和打开远程项目都在原窗口中完成。自定义启动方式请将 profile 名替换为实际使用的名称。
 
-找不到 `dsh` 命令时，可在官方客户端的「应用 → 管理 dsh 命令」中配置。也可以在客户端的插件管理界面中，使用 npm 包名 `dsh-ssh-workspaces` 安装。
+找不到 `dsh` 命令时，可在官方客户端的「应用 → 管理 dsh 命令」中配置。此 fork 未发布到 npm；不要用原 npm 包名安装本适配版本。
 
 ## 第一次使用
 

@@ -3,7 +3,10 @@ import manifest from '../package.json' with { type: 'json' }
 export const RPC_CHANNEL = '/api'
 export const RPC_PREFIX = 'dsh-ssh-workspaces'
 export const PLUGIN_VERSION = manifest.version
+// Last upstream version verified against a real desktop/WSL deployment.
 export const VERIFIED_DSH_VERSION = '0.2.2-rc.1'
+// This fork targets rc.5; real remote compatibility is tested separately in CI.
+export const TARGET_DSH_VERSION = manifest.devDependencies['@deepseek-ai/dsh-tools']
 
 export interface WslTarget {
   kind: 'wsl'
