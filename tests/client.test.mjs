@@ -566,6 +566,13 @@ test('Docker supports context discovery, a separate SSH engine identity, and lig
     assert.equal(fixture.calls.filter(call => call.method === 'docker/list').at(-1).input.sudo, true)
     await click(button('测试连接'))
     assert.equal(fixture.calls.filter(call => call.method === 'test').at(-1).input.target.sudo, true)
+    await select('dockerExecution', 'sudo-password')
+    await input('sudoPassword', 'synthetic-sudo-password')
+    await click(button('测试连接'))
+    const sudoTest = fixture.calls.filter(call => call.method === 'test').at(-1).input
+    assert.equal(sudoTest.target.sudo, 'password')
+    assert.equal(sudoTest.credentials.sudoPassword, 'synthetic-sudo-password')
+    assert.equal(sudoTest.target.sudoPassword, undefined)
     assert.match(document.querySelector('.dsh-ssh__version').textContent, /适配 DSH 0\.2\.2-rc\.5/)
     await click(document.querySelector('input[type="radio"][value="light"]'))
     await input('localPath', 'D:\\shared-demo')

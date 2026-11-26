@@ -566,3 +566,24 @@ test('Docker socket and sudo failures are not classified as SSH authentication f
     } finally { await transport.dispose() }
   }
 })
+
+
+test('password sudo waits for prompt and container readiness before forwarding data', async () => {
+  const docker: RemoteTarget = { kind: 'docker', container: 'demo', via: ssh, sudo: 'password', remotePath: '/' }
+  const secret = 'test-sudo-secret'
+  class SudoTransport extends RemoteTransport {
+    protected override spawnProcess(invocation: Invocation): ChildProcessWithoutNullStreams {
+      const command = invocation.args.at(-1)!
+      assert.ok(!JSON.stringify(invocation).includes(secret))
+      const prompt = command.match(/DSH_SUDO_PROMPT_[a-f0-9]{32}/)![0]
+      const ready = command.match(/DSH_SUDO_READY_[a-f0-9]{32}/)![0]
+      const code = `let buf='';let authed=false;process.stderr.write(${JSON.stringify(prompt.slice(0, 15))});setTimeout(()=>process.stderr.write(${JSON.stringify(prompt.slice(15))}),30);process.stdin.on('data',d=>{buf+=d;const i=buf.indexOf('\\n');if(!authed&&i>=0){if(buf.slice(0,i)!==${JSON.stringify(secret)}||buf.length!==i+1)process.exit(2);buf='';authed=true;process.stderr.write(${JSON.stringify(ready)});return}if(authed&&buf.includes('business')){process.stdout.write(JSON.stringify({ok:true}));process.exit(0)}})`
+      return super.spawnProcess({executable:process.execPath,args:['-e',code]})
+    }
+  }
+  const transport = new SudoTransport()
+  try {
+    transport.setCredentials(docker, { sudoPassword: secret })
+    assert.deepEqual(await transport.pythonInput(docker, 'pass', { value: 'business' }), { ok: true })
+  } finally { await transport.dispose() }
+})

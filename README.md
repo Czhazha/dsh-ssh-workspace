@@ -113,7 +113,7 @@
 
 ## 安装
 
-**Fork 0.4.1-rc5.1**：SSH 宿主 Docker 可显式选择普通 Docker 或非交互式 sudo Docker。默认不提权；sudo 模式要求管理员已授权 `sudo -n -- docker ps`，不存储或传送 sudo 密码。请使用隔离测试环境，勿覆盖原插件。
+**Fork 0.4.1-rc5.2**：SSH 宿主 Docker 可显式选择普通 Docker 或非交互式 sudo Docker。默认不提权；sudo 模式要求管理员已授权 `sudo -n -- docker ps`，不存储或传送 sudo 密码。请使用隔离测试环境，勿覆盖原插件。
 
 > **Czhazha fork：DSH 0.2.2-rc.5 适配分支。** 此分支固定 rc.5 开发依赖及全量远端后端版本。174 项回归测试曾在 rc.5 依赖环境通过；正式锁文件和真实 Docker 后端验收见 GitHub Actions。Windows / SSH / WSL 仍需实机确认。下面 rc.1 的实机记录来自上游，不代表本分支已完成 rc.5 实机验收。
 
@@ -127,7 +127,7 @@ cd dsh-ssh-workspace
 npm ci
 npm run check
 npm pack
-dsh plugin --profile web add ./dsh-ssh-workspaces-0.4.1-rc5.1.tgz
+dsh plugin --profile web add ./dsh-ssh-workspaces-0.4.1-rc5.2.tgz
 ```
 
 桌面客户端使用 `--profile desktop`。建议先用独立测试 profile，勿直接覆盖现有生产 profile。
@@ -183,3 +183,5 @@ WSL 中需要 Python 3 和 Bash。全量模式首次连接还需要下载 Node /
 源码构建、验证和实现说明见[开发指南](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/development.md)。参与维护请阅读 [AGENTS.md](https://github.com/czp0312/dsh-ssh-workspace/blob/main/AGENTS.md)，功能变更应同步更新使用文档和截图。
 
 同窗远程项目的交互参考了 [ZCode](https://github.com/zai-org/ZCode)。项目基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的插件机制开发，轻量 SSH 可搭配 [SSHFS-Win](https://github.com/winfsp/sshfs-win) 使用。
+
+Fork rc5.2 新增 SSH 宿主 sudo Docker（密码认证），独立输入 sudo 密码。密码只在进程内保存，SSH 不申请 PTY，认证后才转发容器输入；不支持 requiretty 或自定义 PAM 交互，管理员授权仍是前提。

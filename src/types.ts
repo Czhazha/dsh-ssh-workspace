@@ -29,7 +29,7 @@ export interface SshTarget {
 }
 
 /** RPC-only input. Never place these fields on a target or durable workspace. */
-export interface SshCredentials { password?: string; passphrase?: string }
+export interface SshCredentials { password?: string; passphrase?: string; sudoPassword?: string }
 
 export interface DockerTarget {
   kind: 'docker'
@@ -40,12 +40,12 @@ export interface DockerTarget {
   /** Execute Docker on an SSH host; mutually exclusive with a local Docker context. */
   via?: SshTarget
   /** Explicit non-interactive sudo for Docker on the SSH host only. */
-  sudo?: true
+  sudo?: true | 'password'
   user?: string
   remotePath: string
 }
 
-export interface DockerHost { context?: string; via?: SshTarget; sudo?: true }
+export interface DockerHost { context?: string; via?: SshTarget; sudo?: true | 'password' }
 export interface DockerContainer { id: string; name: string; image: string; state: string; status: string }
 export type RemoteTarget = WslTarget | SshTarget | DockerTarget
 

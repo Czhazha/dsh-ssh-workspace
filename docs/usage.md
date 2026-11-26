@@ -269,6 +269,8 @@ export PATH="$HOME/.local/share/dsh-ssh-workspaces/node-v24.12.0-linux-x64/bin:$
 
 远端部署目录内的 `backend.json` 和 `backend.log` 可能包含启动令牌，不要直接上传原文件。底层路由及验证说明见[开发指南](development.md)。
 
-### SSH 宿主 Docker 执行方式（fork 0.4.1-rc5.1）
+### SSH 宿主 Docker 执行方式（fork 0.4.1-rc5.2）
 
 添加 Docker 项目并选择 SSH 服务器后，可选择普通 Docker（默认）或 sudo Docker。sudo 模式固定执行 `sudo -n -- docker`，需由管理员预先授权，且不会提示、保存或传送 sudo 密码。先在同一 SSH 用户下运行 `sudo -n -- docker ps` 检查授权。容器内用户仍由独立字段控制。旧登记默认普通 Docker；改用 sudo 时请在独立测试环境添加新连接，不自动修改旧登记或迁移会话。Docker 管理权限接近 root，仅授予可信用户。
+
+rc5.2 增加第三种执行方式「sudo Docker（密码认证）」。使用独立 sudo 密码字段，密码不写入项目登记、argv 或环境变量；重启后重新输入。不自动修改 sudoers，不支持要求 TTY、多因素认证或交互式自定义 PAM 提示。
