@@ -120,11 +120,11 @@ export function buildPythonInvocation(target: RemoteTarget, script: string, requ
 }
 
 export function buildDockerInvocation(host: DockerHost, args: string[], config: PluginConfig = {}, allowPrompts = false): Invocation {
-  const canonical = validateModelTarget({ kind: 'docker', container: 'validation', remotePath: '/', ...host })
+  const canonical = validateModelTarget({ kind: 'docker', container: 'validation', remotePath: '/', context: host.context, via: host.via, sudo: host.sudo })
   if (canonical.kind !== 'docker') throw new Error('Invalid Docker host')
   const cfg = settings(config)
   const argv = [...(canonical.context ? ['--context', canonical.context] : []), ...args]
-  return canonical.via ? buildCommandInvocation(canonical.via, ['docker', ...argv], config, allowPrompts)
+  return canonical.via ? buildCommandInvocation(canonical.via, [...(canonical.sudo ? ['sudo', '-n', '--'] : []), 'docker', ...argv], config, allowPrompts)
     : checkInvocation({ executable: cfg.dockerExecutable, args: argv })
 }
 
@@ -419,13 +419,18 @@ export class RemoteTransport {
     if (result.stdoutTruncated || result.stderrTruncated) throw new Error('Remote response exceeded the output limit')
     if (result.exitCode !== 0) {
       const hostKey = classifyHostKeyFailure(result.stderr)
-      const hint = hostKey === 'changed'
+      const stderr = result.stderr
+      const hint = /sudo:.*(?:password|terminal|not allowed|not in the sudoers|may not run|authentication|permission denied)/i.test(stderr)
+        ? '\n远端 sudo Docker 未获非交互式授权。请管理员确认 sudo -n -- docker ps 可执行；不会自动提交密码。'
+        : /(?:docker daemon socket|docker\.sock|docker_engine)/i.test(stderr) && /permission denied|access is denied/i.test(stderr)
+        ? '\nDocker daemon 权限不足：请确认 SSH 用户有 Docker 权限，或明确选择 sudo Docker（需管理员授权非交互式 sudo）。'
+        : hostKey === 'changed'
         ? '\n主机密钥与本机已知记录不一致，可能存在中间人或服务器已更换密钥。插件不会自动替换主机密钥；请先核对服务器指纹，确认无误后删除 known_hosts 中该主机的旧记录再重试。'
         : hostKey === 'unknown'
         ? '\n本机 known_hosts 中还没有这台主机的密钥。可在插件中核对主机指纹后信任该主机，无需先在终端连接；插件不会跳过严格主机密钥校验。'
         : /UNPROTECTED PRIVATE KEY FILE|bad permissions|permissions.*too open/i.test(result.stderr)
         ? '\n本机私钥文件权限过宽，已被 OpenSSH 忽略。请将该文件的访问权限限制到当前用户后重试；插件不会自动修改私钥权限。'
-        : /Permission denied|sign_and_send_pubkey|Load key|identity file|no such identity/i.test(result.stderr)
+        : (/Permission denied \([^\r\n]+\)|sign_and_send_pubkey|Load key|no such identity/i.test(stderr) || (result.exitCode === 255 && /Permission denied|identity file/i.test(stderr)))
         ? '\nSSH 认证失败：请核对登录方式、用户名、密码或密钥；加密私钥请填写私钥口令，也可使用 ssh-agent。证书登录请核对证书有效期及服务器 CA 配置。'
         : ''
       throw new Error(`Remote operation failed (exit ${result.exitCode ?? 'terminated'})${result.stderr ? ': ' + result.stderr.slice(-4096).trim() : ''}${hint}`)

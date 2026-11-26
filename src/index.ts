@@ -111,7 +111,7 @@ export async function apply(ctx: Context, config: PluginConfig = {}): Promise<vo
         case 'wsl/list': value = await transport.listWsl(signal); break
         case 'docker/list': {
           const request = object(payload)
-          const target = validateTarget({ kind: 'docker', container: 'list', remotePath: '/', context: request.context, via: request.via })
+          const target = validateTarget({ kind: 'docker', container: 'list', remotePath: '/', context: request.context, via: request.via, sudo: request.sudo })
           if (target.kind !== 'docker') throw new Error('Invalid Docker host')
           transport.setCredentials(target, request.credentials)
           value = await transport.listDocker(target, signal); break

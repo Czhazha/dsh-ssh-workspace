@@ -39,11 +39,13 @@ export interface DockerTarget {
   context?: string
   /** Execute Docker on an SSH host; mutually exclusive with a local Docker context. */
   via?: SshTarget
+  /** Explicit non-interactive sudo for Docker on the SSH host only. */
+  sudo?: true
   user?: string
   remotePath: string
 }
 
-export interface DockerHost { context?: string; via?: SshTarget }
+export interface DockerHost { context?: string; via?: SshTarget; sudo?: true }
 export interface DockerContainer { id: string; name: string; image: string; state: string; status: string }
 export type RemoteTarget = WslTarget | SshTarget | DockerTarget
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-ssh-workspaces",
-  "version": "0.4.0",
+  "version": "0.4.1-rc5.1",
   "description": "SSH, WSL and Docker projects in the native DSH sidebar, with lightweight/full modes and selective Skill sync",
   "type": "module",
   "license": "MIT",

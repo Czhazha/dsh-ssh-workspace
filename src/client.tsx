@@ -25,6 +25,7 @@ interface HostKeyFlow {
 interface HostStatus {
   pluginVersion: string
   verifiedDshVersion: string
+  targetDshVersion?: string
   platform: string
   workspaces: WorkspaceView[]
 }
@@ -80,6 +81,7 @@ interface Draft {
   passphrase: string
   distribution: string
   dockerLocation: 'local' | 'ssh'
+  dockerExecution: 'direct' | 'sudo'
   context: string
   container: string
   dockerUser: string
@@ -107,7 +109,7 @@ interface Snapshot {
   hostKey: HostKeyFlow | null
 }
 
-const emptyDraft = (): Draft => ({ mode: 'full', title: '', host: '', port: '', user: '', sshAuth: 'auto', identityFile: '', certificateFile: '', password: '', passphrase: '', distribution: '', dockerLocation: 'local', context: '', container: '', dockerUser: '', remotePath: '/', localPath: '' })
+const emptyDraft = (): Draft => ({ mode: 'full', title: '', host: '', port: '', user: '', sshAuth: 'auto', identityFile: '', certificateFile: '', password: '', passphrase: '', distribution: '', dockerLocation: 'local', dockerExecution: 'direct', context: '', container: '', dockerUser: '', remotePath: '/', localPath: '' })
 const mutationPending = (state: Snapshot): boolean => state.pending.some(key => key === 'add' || key === 'skills/apply' || /^(open|switch|reconnect|disconnect|remove):/.test(key))
 const errorText = (error: unknown): string => error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : '操作未完成，请重试。'
 const joinRemote = (path: string, name: string): string => name.startsWith('/') ? name : `${path.replace(/\/+$/, '')}/${name}`
@@ -206,7 +208,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
     if (draft.sshAuth === 'certificate' && !draft.certificateFile.trim()) { setError('form', '请选择 OpenSSH 用户证书文件。'); return null }
     if (draft.sshAuth === 'password' && !draft.password) { setError('form', '请输入 SSH 登录密码。'); return null }
     const via = { kind: 'ssh' as const, host, remotePath: dockerBase ? '/' : remotePath, ...(user ? { user } : {}), ...(port === undefined ? {} : { port }), ...(draft.sshAuth !== 'auto' ? { auth: draft.sshAuth } : {}), ...(keyed ? { identityFile } : {}), ...(draft.sshAuth === 'certificate' ? { certificateFile: draft.certificateFile.trim() } : {}) }
-    return dockerBase ? { ...dockerBase, via } : via
+    return dockerBase ? { ...dockerBase, via, ...(draft.dockerExecution === 'sudo' ? { sudo: true as const } : {}) } : via
   }
   const credentialsOf = (): { credentials?: SshCredentials } => {
     const draft = state.drafts[state.tab]
@@ -294,7 +296,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
       update({ notice: `「${saved.title}」已重新连接。` })
     }, message => {
       refresh()
-      if (/SSH 密码|口令|认证失败|Permission denied/i.test(message)) editConnection(id)
+      if (/SSH 密码|私钥口令|SSH 认证失败/i.test(message)) editConnection(id)
       if (target) inspectOnHostKeyFailure('connections', target, () => reconnect(id), message)
     })
   }
@@ -308,7 +310,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
       update({ notice: '全量后端已连接，共享此连接的项目已刷新；未登记目录需单独恢复。' })
     }, message => {
       refresh()
-      if (/SSH 密码|口令|认证失败|Permission denied/i.test(message)) editConnection(id, true, force)
+      if (/SSH 密码|私钥口令|SSH 认证失败/i.test(message)) editConnection(id, true, force)
       if (target) inspectOnHostKeyFailure('connections', target, () => reconnectBackend(id, force), message)
     })
   }
@@ -357,7 +359,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
         const ssh = sshTarget(target)
         patchDraft(target.kind, { ...emptyDraft(), mode: record.mode ?? 'light', remotePath: restore ? target.remotePath : parentRemote(target.remotePath), title: restore ? record.title : '',
           ...(target.kind === 'wsl' ? { distribution: target.distribution, user: target.user ?? '' } : {}),
-          ...(target.kind === 'docker' ? { dockerLocation: target.via ? 'ssh' : 'local', context: target.context ?? '', container: target.container, dockerUser: target.user ?? '' } : {}),
+          ...(target.kind === 'docker' ? { dockerLocation: target.via ? 'ssh' : 'local', dockerExecution: target.sudo ? 'sudo' : 'direct', context: target.context ?? '', container: target.container, dockerUser: target.user ?? '' } : {}),
           ...(ssh ? { host: ssh.host, port: ssh.port ? String(ssh.port) : '', user: ssh.user ?? '', sshAuth: ssh.auth ?? 'auto', identityFile: ssh.identityFile ?? '', certificateFile: ssh.certificateFile ?? '' } : {}),
         })
         update({ tab: target.kind })
@@ -399,7 +401,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
         cancelForm()
         update({ directory: null, info: null })
       }
-      if (state.tab === 'docker' && ['dockerLocation', 'context', 'host', 'port', 'user', 'sshAuth', 'identityFile', 'certificateFile'].includes(field)) update({ containers: [] })
+      if (state.tab === 'docker' && ['dockerLocation', 'dockerExecution', 'context', 'host', 'port', 'user', 'sshAuth', 'identityFile', 'certificateFile'].includes(field)) update({ containers: [] })
       patchDraft(state.tab, { [field]: value })
       setError('form', null)
     },
@@ -410,7 +412,7 @@ function createManager(ctx: ClientContext, onChanged: () => void = () => {}, onS
       if (mutationPending(state)) return
       const target = targetOf('listing')
       if (!target || target.kind !== 'docker') return
-      void request('docker/list', 'docker/list', { ...(target.context ? { context: target.context } : {}), ...(target.via ? { via: target.via } : {}), ...credentialsOf() }, 'docker', containers => update({ containers }))
+      void request('docker/list', 'docker/list', { ...(target.context ? { context: target.context } : {}), ...(target.via ? { via: target.via } : {}), ...(target.sudo ? { sudo: true as const } : {}), ...credentialsOf() }, 'docker', containers => update({ containers }))
     },
     loadSkills,
     closeSkills: (): void => { if (state.pending.includes('skills/apply')) return; cancel('skills/preview'); update({ skills: null }); setError('skills', null) },
@@ -636,6 +638,7 @@ function ProjectRow({ manager, state, item, connection, connectionIndex }: Injec
     </div>
     <div className="dsh-ssh__connection-details">
       <p className="dsh-ssh__path" title={item.target.remotePath}>{item.target.remotePath}</p>
+      {item.target.kind === 'docker' && item.target.sudo && <p className="dsh-ssh__project-user">SSH 宿主 · sudo Docker</p>}
       {item.target.kind === 'docker' && item.target.user && <p className="dsh-ssh__project-user">容器用户 · {item.target.user}</p>}
       {item.target.kind !== 'docker' && item.target.user && <p className="dsh-ssh__project-user">用户 · {item.target.user}</p>}
       {connectionIndex !== undefined && <p className="dsh-ssh__hint">共享连接 {connectionIndex + 1} · {connectionLabel(item)}</p>}
@@ -921,6 +924,7 @@ function WorkspaceForm({ manager, state }: Injected & { state: Snapshot }) {
           <legend className="dsh-ssh__sr-only">{docker ? 'Docker 连接信息' : ssh ? 'SSH 连接信息' : 'WSL 连接信息'}</legend>
         {docker && <>
           <label className="dsh-ssh__field" htmlFor={`${id}-dockerLocation`}>Docker 所在位置<select id={`${id}-dockerLocation`} value={draft.dockerLocation} onChange={change('dockerLocation')}><option value="local">本机 Docker / Docker Context</option><option value="ssh">SSH 服务器上的 Docker</option></select></label>
+          {ssh && <label className="dsh-ssh__field" htmlFor={`${id}-dockerExecution`}>Docker 执行方式<select id={`${id}-dockerExecution`} value={draft.dockerExecution} onChange={change('dockerExecution')}><option value="direct">普通 Docker（默认）</option><option value="sudo">sudo Docker（非交互式）</option></select><span className="dsh-ssh__hint">sudo 模式需要管理员授权 sudo -n -- docker；不会自动输入密码或改变容器内用户。</span></label>}
           {!ssh && <label className="dsh-ssh__field" htmlFor={`${id}-context`}>Docker Context <span className="dsh-ssh__optional">可选</span><input id={`${id}-context`} value={draft.context} onChange={change('context')} placeholder="留空使用 Docker CLI 当前上下文" /><span className="dsh-ssh__hint">可填写已配置的远程 Context 名称。此环境需要可用的 Docker CLI。</span></label>}
         </>}
         {ssh ? <div className="dsh-ssh__host-row">
@@ -1076,7 +1080,7 @@ function ManagerOverlay({ manager }: Injected) {
       <header className="dsh-ssh__header"><div className="dsh-ssh__title-icon"><ConnectionIcon /></div><div><h2 id={`${id}-title`}>远程工作区</h2><p id={`${id}-description`}>SSH · WSL · Docker <span aria-hidden="true">/</span> 项目在远端，工作仍在当前窗口。</p></div><button ref={closeButton} type="button" className="dsh-ssh__close" disabled={mutationPending(state)} onClick={() => { manager.close(); manager.exitPanel() }} aria-label="关闭远程工作区管理" title="返回会话">×</button></header>
       <div className="dsh-ssh__notice" role="status" aria-live="polite">{state.notice}</div>
       <div className={`dsh-ssh__body${state.view === 'add' && !state.skills ? ' dsh-ssh__body--add' : ''}`}>{state.skills ? <SkillSyncPanel manager={manager} state={state} /> : state.view === 'add' ? <><WorkspaceForm manager={manager} state={state} /><ModeGuide /></> : <SavedConnections manager={manager} state={state} />}</div>
-      <footer className="dsh-ssh__version">Workspaces {PLUGIN_VERSION}{state.status ? ` · 已验证 DSH ${state.status.verifiedDshVersion}` : ' · 正在读取连接状态…'}{state.status && state.status.pluginVersion !== PLUGIN_VERSION ? ' · 更新已安装，请重启 DSH 完成加载' : ''}</footer>
+      <footer className="dsh-ssh__version">Workspaces {PLUGIN_VERSION}{state.status ? ` · 适配 DSH ${state.status.targetDshVersion ?? state.status.verifiedDshVersion} · 上游实机基准 ${state.status.verifiedDshVersion}` : ' · 正在读取连接状态…'}{state.status && state.status.pluginVersion !== PLUGIN_VERSION ? ' · 更新已安装，请重启 DSH 完成加载' : ''}</footer>
     </div>
   </div>
 }

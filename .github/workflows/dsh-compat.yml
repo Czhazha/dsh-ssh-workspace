@@ -24,7 +24,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-ssh-workspaces-rc5-${{ runner.os }}
-          path: dsh-ssh-workspaces-0.4.0.tgz
+          path: dsh-ssh-workspaces-0.4.1-rc5.1.tgz
           if-no-files-found: error
   remote-smoke:
     runs-on: ubuntu-latest

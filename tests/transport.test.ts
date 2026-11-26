@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import test, { type TestContext } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 import { REMOTE_HELPER, type HelperRequest } from '../src/remote-helper.js'
-import { buildInvocation, buildPythonInvocation, decodeWslList, quotePosix, RemoteTransport, transportEnvironment, validateIdentityFile, type Invocation } from '../src/transport.js'
+import { buildInvocation, buildPythonInvocation, buildDockerInvocation, decodeWslList, quotePosix, RemoteTransport, transportEnvironment, validateIdentityFile, type Invocation } from '../src/transport.js'
 import type { RemoteTarget } from '../src/types.js'
 
 const target: RemoteTarget = { kind: 'wsl', distribution: 'Test Linux', remotePath: '/test-work' }
@@ -529,4 +529,40 @@ test('host-key verification is wired only to SSH-backed targets', async () => {
     const docker: RemoteTarget = { kind: 'docker', container: 'b'.repeat(64), via: ssh, remotePath: '/' }
     await assert.rejects(transport.trustHostKeys(docker, ['not-a-fingerprint']), /无效/)
   } finally { await transport.dispose() }
+})
+
+
+test('SSH Docker sudo is explicit, noninteractive and shared by list and Python tunnel invocations', () => {
+  const direct = buildDockerInvocation({ via: ssh }, ['ps'])
+  const elevated = buildDockerInvocation({ via: ssh, sudo: true }, ['ps'])
+  const parse = (invocation: Invocation) => JSON.parse(pythonSync('import json,shlex,sys;print(json.dumps(shlex.split(sys.argv[1])))', [invocation.args.at(-1)!]))
+  assert.deepEqual(parse(direct), ['docker', 'ps'])
+  assert.deepEqual(parse(elevated), ['sudo', '-n', '--', 'docker', 'ps'])
+  const docker: RemoteTarget = { kind: 'docker', container: 'demo', via: ssh, sudo: true, user: 'app', remotePath: '/' }
+  assert.deepEqual(parse(buildPythonInvocation(docker, 'pass', {})).slice(0, 10), ['sudo', '-n', '--', 'docker', 'exec', '-i', '--user', 'app', 'demo', 'python3'])
+  assert.throws(() => buildDockerInvocation({ sudo: true }, ['ps']), /仅支持 SSH/)
+})
+
+test('Docker socket and sudo failures are not classified as SSH authentication failures', async () => {
+  class ErrorTransport extends RemoteTransport {
+    constructor(private readonly message: string, private readonly code: number) { super() }
+    protected override spawnProcess(_invocation: Invocation): ChildProcessWithoutNullStreams {
+      return super.spawnProcess({ executable: process.execPath, args: ['-e', `process.stderr.write(${JSON.stringify(this.message)});process.exit(${this.code})`] })
+    }
+  }
+  for (const [message, code, expected, auth] of [
+    ['permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock', 1, /Docker daemon 权限不足/, false],
+    ['sudo: a password is required', 1, /非交互式授权/, false],
+    ['alice@server: Permission denied (publickey,password).', 255, /SSH 认证失败/, true],
+  ] as const) {
+    const transport = new ErrorTransport(message, code)
+    try {
+      await assert.rejects(transport.listDocker({ via: ssh }), error => {
+        assert.ok(error instanceof Error)
+        assert.match(error.message, expected)
+        assert.equal(error.message.includes('SSH 认证失败'), auth)
+        return true
+      })
+    } finally { await transport.dispose() }
+  }
 })
