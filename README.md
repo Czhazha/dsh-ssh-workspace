@@ -4,7 +4,7 @@
 
 不用为每台机器再打开一个 DSH 窗口。在左侧 **远程工作区** 中添加目录，就能与本机项目一起管理。需要完整的远程开发环境时，让 Agent、终端和任务在远端 DSH 中运行，并按需把本机 Skill 同步过去；希望保留本机 Agent 和模型配置时，可以使用本项目的**轻量模式**。
 
-[npm 安装包](https://www.npmjs.com/package/dsh-ssh-workspaces) · [使用指南](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/usage.md) · [问题反馈](https://github.com/czp0312/dsh-ssh-workspace/issues) · [MIT License](https://github.com/czp0312/dsh-ssh-workspace/blob/main/LICENSE)
+[本 fork 安装包（GitHub Releases）](https://github.com/Czhazha/dsh-ssh-workspace/releases) · [上游 npm 安装包](https://www.npmjs.com/package/dsh-ssh-workspaces) · [使用指南](https://github.com/Czhazha/dsh-ssh-workspace/blob/main/docs/usage.md) · [问题反馈](https://github.com/Czhazha/dsh-ssh-workspace/issues) · [MIT License](https://github.com/czp0312/dsh-ssh-workspace/blob/main/LICENSE)
 
 ![按环境归组的远程项目：同一 WSL 下各项目独立选择模式，共享全量连接统一管理](https://raw.githubusercontent.com/czp0312/dsh-ssh-workspace/main/docs/images/environment-groups.png)
 
@@ -113,16 +113,21 @@
 
 ## 安装
 
-**Fork 0.4.1-rc5.2**：SSH 宿主 Docker 可显式选择普通 Docker 或非交互式 sudo Docker。默认不提权；sudo 模式要求管理员已授权 `sudo -n -- docker ps`，不存储或传送 sudo 密码。请使用隔离测试环境，勿覆盖原插件。
+**当前 fork 版本：0.4.1-rc5.2；适配 DSH 0.2.2-rc.5。** 基于 [czp0312/dsh-ssh-workspace](https://github.com/czp0312/dsh-ssh-workspace)，保留上游 MIT 许可及版权。
 
-> **Czhazha fork：DSH 0.2.2-rc.5 适配分支。** 此分支固定 rc.5 开发依赖及全量远端后端版本。174 项回归测试曾在 rc.5 依赖环境通过；正式锁文件和真实 Docker 后端验收见 GitHub Actions。Windows / SSH / WSL 仍需实机确认。下面 rc.1 的实机记录来自上游，不代表本分支已完成 rc.5 实机验收。
+- SSH 宿主 Docker 提供普通 Docker（默认）、免密 sudo Docker、sudo 密码认证三种显式方式；不自动提权，不修改 sudoers。
+- Windows/Linux 构建与真实 Docker 后端 CI 已通过（[验收记录](https://github.com/Czhazha/dsh-ssh-workspace/actions/runs/45756695087)）。维护者反馈真实 SSH + sudo 密码环境可用；不代表所有认证方式、桌面客户端或 WSL 均已实机验证。
+- sudo 密码与 SSH 密码独立输入，仅在当前进程内存保留；不支持强制 TTY、MFA 或自定义交互式 PAM。
+- 从 [GitHub Releases](https://github.com/Czhazha/dsh-ssh-workspace/releases) 下载对应本机系统的 tgz。建议先隔离 DSH_HOME 与 profile，不直接覆盖旧插件。此 fork 尚未发布 npm。
+
+### 上游历史验收记录（非本 fork rc.5 验收）
 
 插件版本 **0.4.0**，已实机验证 **DSH 0.2.2-rc.1**。Windows 桌面客户端已验证全量项目侧栏显示；独立 WSL 项目已验证远端文件、终端、附件、断开重连及全量 → 轻量 → 全量后原会话保留。Skill 同步也已通过真实 DSH / WSL 验证。Docker 已完成连接参数、认证、容器身份和界面回归，当前测试环境没有可用的 Docker daemon，尚未完成真实容器验收。0.3.2 进一步实测了环境分组、共享连接、逐项目模式往返、筛选影响范围和窄布局。0.3.3 重构管理界面与交互，远程执行、连接存储和路由逻辑未改动。0.4.0 新增插件内 SSH 主机指纹核对与信任流程，并让主机密钥错误直接指向该面板；主机密钥读取、`known_hosts` 写入、拒绝替换变更指纹的边界已有服务端回归测试，客户端面板有 UI 回归测试覆盖，尚未重新进行真实客户端验收。DSH 声明的兼容范围不等于所有版本都已测试。
 
 请使用 Node 24.9+，从本 fork 构建安装包（Windows 建议在 Windows 本机打包，以包含 askpass exe）：
 
 ```sh
-git clone -b compat/dsh-0.2.2-rc.5 https://github.com/Czhazha/dsh-ssh-workspace.git
+git clone https://github.com/Czhazha/dsh-ssh-workspace.git
 cd dsh-ssh-workspace
 npm ci
 npm run check
@@ -156,12 +161,12 @@ WSL 中需要 Python 3 和 Bash。全量模式首次连接还需要下载 Node /
 4. 首次连接时在「主机密钥验证」面板核对指纹，确认一致后点击「信任并重试」。
 5. 测试连接，点击「添加到工作区」，然后打开项目。
 
-**全量模式使用远端自己的模型配置。** 插件不会复制本机 API Key、登录信息或第三方插件。首次使用前，请为远端 DSH 配置可用的模型提供方，详见[全量模式准备](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/usage.md#全量模式准备)。
+**全量模式使用远端自己的模型配置。** 插件不会复制本机 API Key、登录信息或第三方插件。首次使用前，请为远端 DSH 配置可用的模型提供方，详见[全量模式准备](https://github.com/Czhazha/dsh-ssh-workspace/blob/main/docs/usage.md#全量模式准备)。
 
 ### 添加 Docker 项目
 
 1. 点击 **远程工作区 → 添加项目 → DOCKER**，选择 Docker 所在位置。
-2. 本机 / Context 方式可填写已有 Context 名称；SSH 方式填写宿主机的登录信息。
+2. 本机 / Context 方式可填写已有 Context 名称；SSH 方式填写宿主机登录信息，并明确选择普通 Docker、免密 sudo 或 sudo 密码认证。
 3. 点击「读取容器」，选择运行中的容器，或直接填写名称 / ID。
 4. 填写容器内项目目录，按需指定容器内用户。
 5. 选择运行模式。轻量模式填写已与容器目录双向共享的本机路径；全量模式无需挂载。
@@ -174,13 +179,13 @@ WSL 中需要 Python 3 和 Bash。全量模式首次连接还需要下载 Node /
 - **全量部署不需要 root。** DSH 安装在远端用户目录，服务只监听其 `127.0.0.1`，经 SSH、WSL 或 Docker exec 通道连接。
 - **首次主机指纹可在插件内核对。** 插件遵循严格主机密钥校验，不会跳过未知或变更的主机指纹；面板会显示指纹并等你确认后才写入 `known_hosts`。指纹变化时插件不会替换已有记录。
 
-详细的认证、Docker 环境、Skill 同步和故障处理见[使用指南](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/usage.md)。与 ZCode 的能力对应关系及当前边界见[远程能力对照](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/remote-capabilities.md)。
+详细的认证、Docker 环境、Skill 同步和故障处理见[使用指南](https://github.com/Czhazha/dsh-ssh-workspace/blob/main/docs/usage.md)。与 ZCode 的能力对应关系及当前边界见[远程能力对照](https://github.com/Czhazha/dsh-ssh-workspace/blob/main/docs/remote-capabilities.md)。
 
 ## 开发与反馈
 
-欢迎通过 [GitHub Issues](https://github.com/czp0312/dsh-ssh-workspace/issues) 反馈问题。请说明插件版本、DSH 版本、操作系统、连接方式（SSH / WSL / Docker）、运行模式和复现步骤；日志与截图中请先移除凭据及私人项目内容。
+欢迎通过 [GitHub Issues](https://github.com/Czhazha/dsh-ssh-workspace/issues) 反馈问题。请说明插件版本、DSH 版本、操作系统、连接方式（SSH / WSL / Docker）、运行模式和复现步骤；日志与截图中请先移除凭据及私人项目内容。
 
-源码构建、验证和实现说明见[开发指南](https://github.com/czp0312/dsh-ssh-workspace/blob/main/docs/development.md)。参与维护请阅读 [AGENTS.md](https://github.com/czp0312/dsh-ssh-workspace/blob/main/AGENTS.md)，功能变更应同步更新使用文档和截图。
+源码构建、验证和实现说明见[开发指南](https://github.com/Czhazha/dsh-ssh-workspace/blob/main/docs/development.md)。参与维护请阅读 [AGENTS.md](https://github.com/czp0312/dsh-ssh-workspace/blob/main/AGENTS.md)，功能变更应同步更新使用文档和截图。
 
 同窗远程项目的交互参考了 [ZCode](https://github.com/zai-org/ZCode)。项目基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的插件机制开发，轻量 SSH 可搭配 [SSHFS-Win](https://github.com/winfsp/sshfs-win) 使用。
 

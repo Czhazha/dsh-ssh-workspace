@@ -1,7 +1,7 @@
 name: DSH rc.5 locked build and remote smoke
 on:
   push:
-    branches: ['compat/dsh-0.2.2-rc.5']
+    branches: ['compat/dsh-0.2.2-rc.5', 'main']
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,6 +20,7 @@ jobs:
           node-version: '24.12.0'
       - run: npm ci --no-audit --no-fund
       - run: npm run check
+      - run: npm pack --dry-run
       - run: npm pack
       - uses: actions/upload-artifact@v4
         with:
@@ -55,3 +56,47 @@ jobs:
       - name: Remove disposable container
         if: always()
         run: docker rm -f dsh-compat-backend || true
+
+  release-rc5-2:
+    if: github.repository == 'Czhazha/dsh-ssh-workspace' && github.ref == 'refs/heads/main'
+    needs: [check, remote-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-v0.4.1-rc5.2
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-ssh-workspaces-rc5-Windows
+          path: release/windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: dsh-ssh-workspaces-rc5-Linux
+          path: release/linux
+      - name: Publish fork prerelease after all checks pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          if [ "$version" != "0.4.1-rc5.2" ]; then
+            echo "Not the designated release version; skipping."
+            exit 0
+          fi
+          tag="v$version"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists; leaving existing assets unchanged."
+            exit 0
+          fi
+          for platform in windows linux; do
+            mv "release/$platform/dsh-ssh-workspaces-$version.tgz" "release/dsh-ssh-workspaces-$version-$platform.tgz"
+          done
+          cd release
+          sha256sum *.tgz > SHA256SUMS.txt
+          gh release create "$tag" *.tgz SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+            --title "$tag - DSH rc.5 compatibility" \
+            --notes "Czhazha fork of czp0312/dsh-ssh-workspace (MIT). DSH 0.2.2-rc.5 compatibility; direct, passwordless sudo and password-authenticated sudo Docker over SSH. Windows/Linux CI and Docker backend smoke passed; maintainer reports successful real SSH sudo-password use. Desktop/WSL and other authentication configurations not independently verified. Use isolated DSH_HOME for testing. No npm publication."

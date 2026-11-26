@@ -136,3 +136,7 @@ Docker 当前只有连接边界、认证复用、完整 ID、停止容器拒绝�
 npm 包的 `repository` 已指向本仓库，目录会自动关联 npm 安装源，不应在市场 YAML 中添加未支持的 `npm` 字段。
 
 Windows CI 使用原生 Windows Python 执行元数据、路径、SSH 参数、UI 等测试；需要 Linux 进程组、信号与管道的测试在无 WSL 的 Windows runner 上显式跳过，并在 Linux CI 完整执行。Docker 冒烟测试使用与宿主 runner 相同 UID/GID 的非 root 容器用户验证 0600 挂载探针，不放宽探针权限。
+
+## Fork rc5.2 验收与发布
+
+2026-11-26：Windows/Linux 构建及真实 Docker 后端 CI [45756695087](https://github.com/Czhazha/dsh-ssh-workspace/actions/runs/45756695087) 通过；维护者反馈真实 SSH + sudo 密码环境可用。此记录不扩大到其他 SSH 认证、桌面或 WSL 实机组合。发布流水线仅在 fork main 的指定版本、全部 CI 成功后创建预发布标签与对应平台安装包，不发布 npm。
