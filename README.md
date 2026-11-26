@@ -113,7 +113,7 @@
 
 ## 安装
 
-**当前 fork 版本：0.4.1-rc5.2；适配 DSH 0.2.2-rc.5。** 基于 [czp0312/dsh-ssh-workspace](https://github.com/czp0312/dsh-ssh-workspace)，保留上游 MIT 许可及版权。
+**当前 fork 正式版本：0.4.1；适配 DSH 0.2.2-rc.5。** 基于 [czp0312/dsh-ssh-workspace](https://github.com/czp0312/dsh-ssh-workspace)，保留上游 MIT 许可及版权。
 
 - SSH 宿主 Docker 提供普通 Docker（默认）、免密 sudo Docker、sudo 密码认证三种显式方式；不自动提权，不修改 sudoers。
 - Windows/Linux 构建与真实 Docker 后端 CI 已通过（[验收记录](https://github.com/Czhazha/dsh-ssh-workspace/actions/runs/45756695087)）。维护者反馈真实 SSH + sudo 密码环境可用；不代表所有认证方式、桌面客户端或 WSL 均已实机验证。
@@ -132,7 +132,7 @@ cd dsh-ssh-workspace
 npm ci
 npm run check
 npm pack
-dsh plugin --profile web add ./dsh-ssh-workspaces-0.4.1-rc5.2.tgz
+dsh plugin --profile web add ./dsh-ssh-workspaces-0.4.1.tgz
 ```
 
 桌面客户端使用 `--profile desktop`。建议先用独立测试 profile，勿直接覆盖现有生产 profile。
@@ -189,4 +189,4 @@ WSL 中需要 Python 3 和 Bash。全量模式首次连接还需要下载 Node /
 
 同窗远程项目的交互参考了 [ZCode](https://github.com/zai-org/ZCode)。项目基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的插件机制开发，轻量 SSH 可搭配 [SSHFS-Win](https://github.com/winfsp/sshfs-win) 使用。
 
-Fork rc5.2 新增 SSH 宿主 sudo Docker（密码认证），独立输入 sudo 密码。密码只在进程内保存，SSH 不申请 PTY，认证后才转发容器输入；不支持 requiretty 或自定义 PAM 交互，管理员授权仍是前提。
+Fork 0.4.1 新增 SSH 宿主 sudo Docker（密码认证），独立输入 sudo 密码。密码只在进程内保存，SSH 不申请 PTY，认证后才转发容器输入；不支持 requiretty 或自定义 PAM 交互，管理员授权仍是前提。

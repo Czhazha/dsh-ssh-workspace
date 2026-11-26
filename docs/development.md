@@ -17,7 +17,7 @@ npm pack
 从仓库根目录把本地包安装到测试 profile：
 
 ```sh
-dsh plugin --profile your-test-profile add ./dsh-ssh-workspaces-0.4.1-rc5.2.tgz
+dsh plugin --profile your-test-profile add ./dsh-ssh-workspaces-0.4.1.tgz
 ```
 
 测试前应通过独立 `DSH_HOME` 配置隔离数据目录，并启动同名 profile。不要直接修改正在使用的桌面 profile 来做安装试验。
@@ -137,6 +137,7 @@ npm 包的 `repository` 已指向本仓库，目录会自动关联 npm 安装源
 
 Windows CI 使用原生 Windows Python 执行元数据、路径、SSH 参数、UI 等测试；需要 Linux 进程组、信号与管道的测试在无 WSL 的 Windows runner 上显式跳过，并在 Linux CI 完整执行。Docker 冒烟测试使用与宿主 runner 相同 UID/GID 的非 root 容器用户验证 0600 挂载探针，不放宽探针权限。
 
-## Fork rc5.2 验收与发布
+## Fork 0.4.1 验收与发布
 
-2026-11-26：Windows/Linux 构建及真实 Docker 后端 CI [45756695087](https://github.com/Czhazha/dsh-ssh-workspace/actions/runs/45756695087) 通过；维护者反馈真实 SSH + sudo 密码环境可用。此记录不扩大到其他 SSH 认证、桌面或 WSL 实机组合。发布流水线仅在 fork main 的指定版本、全部 CI 成功后创建预发布标签与对应平台安装包，不发布 npm。
+2026-11-26：Windows/Linux 构建及真实 Docker 后端 CI [45756695087](https://github.com/Czhazha/dsh-ssh-workspace/actions/runs/45756695087) 通过；维护者反馈真实 SSH + sudo 密码环境可用。此记录不扩大到其他 SSH 认证、桌面或 WSL 实机组合。发布流水线仅在 fork main 的指定版本、全部 CI 成功后创建正式发布标签与对应平台安装包，不发布 npm。
+正式版 0.4.1 继承已验证的预发布版 rc5.2 功能代码，仅调整版本、文档与发布流程；保留历史预发布记录。正式版仍固定 DSH 0.2.2-rc.5，不代表其他宿主版本或未验收场景获得兼容保证。
