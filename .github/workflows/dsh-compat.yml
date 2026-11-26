@@ -41,10 +41,15 @@ jobs:
           docker run --rm -d --name dsh-compat-backend \
             --mount "type=bind,source=$RUNNER_TEMP/dsh-smoke-project,target=/workspace" \
             node:24.12.0-bookworm sleep infinity
-          docker exec dsh-compat-backend python3 --version
+          # Mount probes deliberately use mode 0600. Match the host runner UID/GID
+          # instead of weakening the probe or granting world-readable permissions.
+          docker exec dsh-compat-backend groupadd -o -g "$(id -g)" dshsmoke
+          docker exec dsh-compat-backend useradd -m -o -u "$(id -u)" -g dshsmoke dshsmoke
+          docker exec --user dshsmoke dsh-compat-backend python3 --version
       - name: Exercise real remote DSH
         env:
           DSH_SMOKE_DOCKER: dsh-compat-backend
+          DSH_SMOKE_DOCKER_USER: dshsmoke
           DSH_SMOKE_MOUNT: ${{ runner.temp }}/dsh-smoke-project
         run: npx --no-install tsx scripts/smoke-backend.ts
       - name: Remove disposable container

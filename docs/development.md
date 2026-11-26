@@ -134,3 +134,5 @@ Docker 当前只有连接边界、认证复用、完整 ID、停止容器拒绝�
 市场条目保存在 [`docs/market-entry.yml`](market-entry.yml)。投稿时把这个文件作为 `data/plugins/czp0312__dsh-ssh-workspace.yml` 提交到 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)，遵循其最新贡献规则。DSH Market 与该目录共用数据；只有申请合并并更新目录后，才能称为已收录。
 
 npm 包的 `repository` 已指向本仓库，目录会自动关联 npm 安装源，不应在市场 YAML 中添加未支持的 `npm` 字段。
+
+Windows CI 使用原生 Windows Python 执行元数据、路径、SSH 参数、UI 等测试；需要 Linux 进程组、信号与管道的测试在无 WSL 的 Windows runner 上显式跳过，并在 Linux CI 完整执行。Docker 冒烟测试使用与宿主 runner 相同 UID/GID 的非 root 容器用户验证 0600 挂载探针，不放宽探针权限。

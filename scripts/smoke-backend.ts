@@ -10,13 +10,14 @@ import { WorkspaceConnections } from '../src/connections.js'
 
 const docker = process.env.DSH_SMOKE_DOCKER
 const mount = process.env.DSH_SMOKE_MOUNT
+const dockerUser = process.env.DSH_SMOKE_DOCKER_USER
 if (docker && !mount) throw new Error('DSH_SMOKE_MOUNT must point to the disposable host directory mounted at /workspace')
 const transport = new RemoteTransport()
 const backends = new RemoteBackends(resolve('.test-artifacts/backend-smoke.json'), transport)
 await backends.load()
 try {
   const record = await backends.add(docker
-    ? { target: { kind: 'docker', container: docker, remotePath: '/workspace' }, title: 'Docker 远程后端验收' }
+    ? { target: { kind: 'docker', container: docker, ...(dockerUser ? { user: dockerUser } : {}), remotePath: '/workspace' }, title: 'Docker 远程后端验收' }
     : { target: { kind: 'wsl', distribution: 'Ubuntu-22.04', remotePath: '/home/cczp/.cache/dsh-ssh-workspaces-desktop-check' }, title: 'WSL 远程后端验收' })
   const wire = await backends.wire(record.backendId)
   const workspaceId = translateIds({ workspaceId: record.workspaceId }, record.backendId, false).workspaceId
