@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: '24.12.0'
       - name: Resolve candidate dependencies
+        id: resolve
         env:
           DSH_VERSION: ${{ matrix.dsh }}
         run: |
@@ -33,13 +34,14 @@ jobs:
           if [ "$DSH_VERSION" = "0.2.2-rc.1" ]; then
             npm ci --no-audit --no-fund
           else
+            rm -f package-lock.json
             npm install --no-audit --no-fund
           fi
           npm ls --all > dependency-tree.txt || true
       - name: Type check
         run: npm run typecheck
       - name: Build and regression tests
-        if: success() || failure()
+        if: (success() || failure()) && steps.resolve.outcome == 'success'
         run: npm test
       - name: Inspect package
         if: success()
